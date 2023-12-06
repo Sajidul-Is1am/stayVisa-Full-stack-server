@@ -3,10 +3,13 @@ const app = express()
 require('dotenv').config()
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
-const { MongoClient, ServerApiVersion } = require('mongodb')
+const {
+  MongoClient,
+  ServerApiVersion
+} = require('mongodb')
 const jwt = require('jsonwebtoken')
 const morgan = require('morgan')
-const port = process.env.PORT || 8000
+const port = process.env.PORT || 5000
 
 // middleware
 const corsOptions = {
@@ -22,19 +25,24 @@ const verifyToken = async (req, res, next) => {
   const token = req.cookies?.token
   console.log(token)
   if (!token) {
-    return res.status(401).send({ message: 'unauthorized access' })
+    return res.status(401).send({
+      message: 'unauthorized access'
+    })
   }
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) {
       console.log(err)
-      return res.status(401).send({ message: 'unauthorized access' })
+      return res.status(401).send({
+        message: 'unauthorized access'
+      })
     }
     req.user = decoded
     next()
   })
 }
+const uri = `mongodb+srv://${process.env.DB_USER_NAME}:${process.env.DB_PASSWORD}@cluster0.j39vwit.mongodb.net/?retryWrites=true&w=majority`;
 
-const client = new MongoClient(process.env.DB_URI, {
+const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
@@ -43,6 +51,7 @@ const client = new MongoClient(process.env.DB_URI, {
 })
 async function run() {
   try {
+      const usersCollection = client.db("StayVisa").collection("users")
     // auth related api
     app.post('/jwt', async (req, res) => {
       const user = req.body
@@ -56,7 +65,9 @@ async function run() {
           secure: process.env.NODE_ENV === 'production',
           sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
         })
-        .send({ success: true })
+        .send({
+          success: true
+        })
     })
 
     // Logout
@@ -68,7 +79,9 @@ async function run() {
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
           })
-          .send({ success: true })
+          .send({
+            success: true
+          })
         console.log('Logout successful')
       } catch (err) {
         res.status(500).send(err)
@@ -79,15 +92,21 @@ async function run() {
     app.put('/users/:email', async (req, res) => {
       const email = req.params.email
       const user = req.body
-      const query = { email: email }
-      const options = { upsert: true }
+      const query = {
+        email: email
+      }
+      const options = {
+        upsert: true
+      }
       const isExist = await usersCollection.findOne(query)
       console.log('User found?----->', isExist)
       if (isExist) return res.send(isExist)
       const result = await usersCollection.updateOne(
-        query,
-        {
-          $set: { ...user, timestamp: Date.now() },
+        query, {
+          $set: {
+            ...user,
+            timestamp: Date.now()
+          },
         },
         options
       )
@@ -95,7 +114,9 @@ async function run() {
     })
 
     // Send a ping to confirm a successful connection
-    await client.db('admin').command({ ping: 1 })
+    await client.db('admin').command({
+      ping: 1
+    })
     console.log(
       'Pinged your deployment. You successfully connected to MongoDB!'
     )
