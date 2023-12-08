@@ -5,11 +5,12 @@ const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const {
   MongoClient,
-  ServerApiVersion
+  ServerApiVersion,
+  ObjectId
 } = require('mongodb')
 const jwt = require('jsonwebtoken')
 const morgan = require('morgan')
-const port = process.env.PORT || 5000
+const port = process.env.PORT || 8000
 
 // middleware
 const corsOptions = {
@@ -21,6 +22,7 @@ app.use(cors(corsOptions))
 app.use(express.json())
 app.use(cookieParser())
 app.use(morgan('dev'))
+
 const verifyToken = async (req, res, next) => {
   const token = req.cookies?.token
   console.log(token)
@@ -52,10 +54,11 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
       const usersCollection = client.db("StayVisa").collection("users")
+      const roomsCollection = client.db("StayVisa").collection("rooms")
     // auth related api
     app.post('/jwt', async (req, res) => {
       const user = req.body
-      console.log('I need a new jwt', user)
+      // console.log('I need a new jwt', user)
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: '365d',
       })
@@ -113,6 +116,26 @@ async function run() {
       res.send(result)
     })
 
+    // get all data for rooms colleciton
+    app.get('/rooms', async (req, res) => {
+      const resuls = await roomsCollection.find().toArray()
+      res.send(resuls)
+    })
+    // get single data for rooms colleciton
+    try {
+      app.get('/room/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = {
+          _id: new ObjectId(id)
+        }
+        const resuls = await roomsCollection.findOne(query)
+        res.send(resuls)
+      })
+
+    }
+    catch (err) {
+      console.log(err.message,"room single data")
+    }
     // Send a ping to confirm a successful connection
     await client.db('admin').command({
       ping: 1
